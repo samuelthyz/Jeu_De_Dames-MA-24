@@ -16,6 +16,7 @@ Date 11.11.2024
 ###############################################################################
 
 import pygame  # Import de Pygame pour toute la partie graphique
+import sys  # Import de sys, pour pouvoir quitter le programme proprement
 import backend  # Import du backend pour les fonctions de logique du jeu
 
 # Paramètres du damier
@@ -267,3 +268,162 @@ def fill_vertical_background(screen):
     """
     fill_vertical_gradient(screen, MENU_COLOR_TOP, MENU_COLOR_BOTTOM)
     # Utilise la fonction de dégradé pour remplir l'écran
+
+
+def show_start_menu(screen):
+    """
+    Affiche le menu de début et retourne True pour lancer la partie, False pour quitter.
+    """
+    selected_option = 0  # Option sélectionnée initialement
+    item_font = pygame.font.SysFont("Arial", 40, bold=True)
+    # Police pour les options du menu
+    options = ["Lancer la partie", "Quitter"]  # Options du menu
+    running = True  # Boucle de menu active
+
+    while running:
+        fill_vertical_background(screen)  # Remplit le fond avec le dégradé
+        panel_w, panel_h = 600, 300  # Dimensions du panneau de menu
+        px = (screen.get_width() - panel_w) // 2  # Calcule la position x du panneau
+        py = (screen.get_height() - panel_h) // 2  # Calcule la position y du panneau
+
+        pygame.draw.rect(screen, PANEL_BG, (px, py, panel_w, panel_h), border_radius=20)
+        # Dessine le fond du panneau avec des bords arrondis
+        pygame.draw.rect(screen, PANEL_EDGE, (px, py, panel_w, panel_h), width=4, border_radius=20)
+        # Dessine le contour du panneau
+
+        title_surf = font_title.render("Menu Principal", True, TEXT_COLOR)
+        # Rendu du titre du menu
+        screen.blit(title_surf, (px + (panel_w - title_surf.get_width()) // 2, py + 40))
+        # Centre le titre dans le panneau
+
+        startY = py + 120  # Position de départ pour afficher les options
+        for i, opt in enumerate(options):  # Pour chaque option disponible
+            c = (255, 0, 0) if i == selected_option else TEXT_COLOR
+            # Met en rouge l'option sélectionnée
+            surf = item_font.render(opt, True, c)
+            screen.blit(surf, (px + (panel_w - surf.get_width()) // 2, startY + i * 60))
+            # Affiche l'option centrée
+
+        pygame.display.flip()  # Actualise l'affichage
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
+                return False  # Quitte si la fenêtre est fermée
+            elif ev.type == pygame.KEYDOWN:
+                if ev.key == pygame.K_UP:
+                    selected_option = (selected_option - 1) % len(options)
+                    # Change l'option sélectionnée vers le haut
+                elif ev.key == pygame.K_DOWN:
+                    selected_option = (selected_option + 1) % len(options)
+                    # Change l'option sélectionnée vers le bas
+                elif ev.key == pygame.K_RETURN:
+                    return (selected_option == 0)  # Retourne True si "Lancer la partie" est choisi
+
+
+def get_player_names(screen):
+    """
+    Permet la saisie du nom des joueurs (Noir puis Gris).
+    """
+    input_font = pygame.font.SysFont("Arial", 40, bold=True)
+    # Police pour la saisie du nom
+    black_name = ""
+    gray_name = ""
+    field = "black"  # Commence par le champ du joueur noir
+    running = True
+    while running:
+        screen.fill(PANEL_BG)  # Fond uni pour la saisie
+        prompt_txt = "Nom (pions noirs) :" if field == "black" else "Nom (pions gris) :"
+        # Prompt pour savoir quel nom saisir
+        prompt_surf = input_font.render(prompt_txt, True, TEXT_COLOR)
+        screen.blit(prompt_surf, (screen.get_width() // 2 - prompt_surf.get_width() // 2,
+                                  screen.get_height() // 3 - prompt_surf.get_height()))
+        # Affiche le prompt au centre
+
+        current_txt = black_name if field == "black" else gray_name
+        # Texte en cours de saisie
+        text_surf = input_font.render(current_txt, True, (0, 0, 0))
+        screen.blit(text_surf, (screen.get_width() // 2 - text_surf.get_width() // 2,
+                                screen.get_height() // 2))
+        # Affiche le texte saisi
+        pygame.display.flip()  # Actualise l'écran
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
+                pygame.quit()  # Ferme Pygame
+                sys.exit()  # Quitte le programme
+            elif ev.type == pygame.KEYDOWN:
+                if ev.key == pygame.K_RETURN:
+                    if current_txt.strip():
+                        if field == "black":
+                            field = "gray"  # Passe à la saisie du nom des gris
+                        else:
+                            return black_name.strip(), gray_name.strip()
+                            # Retourne les noms saisis
+                elif ev.key == pygame.K_BACKSPACE:
+                    if field == "black":
+                        black_name = black_name[:-1]  # Supprime le dernier caractère
+                    else:
+                        gray_name = gray_name[:-1]
+                else:
+                    ch = ev.unicode  # Récupère le caractère tapé
+                    if ch.isprintable():
+                        if field == "black":
+                            black_name += ch  # Ajoute le caractère au nom noir
+                        else:
+                            gray_name += ch  # Ajoute le caractère au nom gris
+
+
+def show_end_menu(screen,
+                  black_name, gray_name,
+                  black_time, gray_time, total_time,
+                  black_pieces, gray_pieces,
+                  black_captures, gray_captures):
+    """
+    Affiche le menu de fin avec un résumé de la partie.
+    """
+    end_font = pygame.font.SysFont("Arial", 50, bold=True)
+    # Police pour le titre de fin
+    info_font = pygame.font.SysFont("Arial", 40)
+    # Police pour le reste des informations
+    panel_w, panel_h = 1000, 600  # Dimensions du panneau de fin
+    px = (screen.get_width() - panel_w) // 2  # Position x pour centrer le panneau
+    py = (screen.get_height() - panel_h) // 2  # Position y pour centrer le panneau
+
+    screen.fill((240, 240, 240))  # Fond clair pour le menu de fin
+    pygame.draw.rect(screen, (240, 240, 240), (px, py, panel_w, panel_h), border_radius=15)
+    # Dessine le fond du panneau
+    pygame.draw.rect(screen, (100, 100, 150), (px, py, panel_w, panel_h), width=4, border_radius=15)
+    # Dessine le contour du panneau
+
+    title_surf = end_font.render("Résumé de la partie", True, (0, 0, 0))
+    # Titre du résumé de la partie
+    screen.blit(title_surf, (px + (panel_w - title_surf.get_width()) // 2, py + 40))
+    # Centre le titre en haut du panneau
+
+    black_rem = len(black_pieces)  # Nombre de pions restants pour les noirs
+    gray_rem = len(gray_pieces)  # Nombre de pions restants pour les gris
+
+    lines = [  # Liste des lignes de résumé
+        f"Temps total : {format_time(total_time)}",
+        f"{black_name} - Temps : {format_time(black_time)} | Captures : {black_captures} | Restants : {black_rem}",
+        f"{gray_name} - Temps : {format_time(gray_time)} | Captures : {gray_captures} | Restants : {gray_rem}",
+        f"Coups joués : {backend.game_stats['moves_count']}",
+        f"Captures totales : {backend.game_stats['total_captures']}"
+    ]
+    yPos = py + 120  # Position de départ verticale pour les lignes
+    for line in lines:
+        txt = info_font.render(line, True, (0, 0, 0))
+        # Rendu de chaque ligne d'info
+        screen.blit(txt, (px + (panel_w - txt.get_width()) // 2, yPos))
+        # Centre la ligne dans le panneau
+        yPos += 50  # Décale vers le bas pour la ligne suivante
+
+    exit_txt = info_font.render("Fermez la fenêtre pour quitter", True, (50, 50, 50))
+    # Instruction de sortie
+    screen.blit(exit_txt, (px + (panel_w - exit_txt.get_width()) // 2, yPos + 40))
+    # Affiche le message de sortie
+
+    pygame.display.flip()  # Actualise l'affichage
+    waiting = True
+    while waiting:  # Boucle d'attente pour la fermeture du menu
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
+                waiting = False  # Sort de la boucle quand l'utilisateur ferme la fenêtre
