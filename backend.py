@@ -45,3 +45,44 @@ def reset_game_state():
         "moves_count": 0,
         "total_captures": 0
     }
+
+
+def check_winner(black_pieces, gray_pieces):
+    """
+    Vérifie si un camp a perdu toutes ses pièces.
+    Retourne 'GRIS' si aucune pièce noire, 'NOIR' si aucune pièce grise,
+    ou None si la partie continue.
+    """
+    if not black_pieces:  # Si la liste des pièces noires est vide
+        return "GRIS"  # Les gris remportent la partie
+    if not gray_pieces:  # Sinon, si les pièces grises sont absentes
+        return "NOIR"  # Les noirs gagnent
+    return None  # Sinon, pas de gagnant pour l'instant
+
+
+def create_position_key(black_pieces, gray_pieces, is_black_turn):
+    """
+    Crée une clé unique représentant l'état du plateau.
+    On trie les positions pour que la comparaison soit fiable.
+    """
+    sb = tuple(sorted(tuple(b) for b in black_pieces))  # Tri des positions noires
+    sg = tuple(sorted(tuple(g) for g in gray_pieces))  # Tri des positions grises
+    return (sb, sg, is_black_turn)  # Retourne le tuple clé
+
+
+def update_position_history(black_pieces, gray_pieces, is_black_turn):
+    """
+    Met à jour l'historique des positions en incrémentant le compteur.
+    """
+    global positions_history
+    key = create_position_key(black_pieces, gray_pieces, is_black_turn)  # Création de la clé
+    positions_history[key] = positions_history.get(key, 0) + 1  # Incrémente ou initialise à 1
+
+
+def is_repeated_position(black_pieces, gray_pieces, is_black_turn):
+    """
+    Vérifie si la position courante a déjà été atteinte 3 fois,
+    ce qui indique une situation de nulle.
+    """
+    key = create_position_key(black_pieces, gray_pieces, is_black_turn)  # Création de la clé
+    return positions_history.get(key, 0) >= 3  # Retourne True si comptage >= 3
