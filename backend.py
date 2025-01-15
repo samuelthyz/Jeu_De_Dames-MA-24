@@ -342,3 +342,59 @@ def break_down_captures(moves, piece):
         else:
             arr.append(mv)  # Sinon, ajoute directement le coup
     return arr  # Retourne la liste des coups décomposés
+
+
+# --- Sauvegarde / Chargement ---
+def save_game_state(filename, black_pieces, gray_pieces, black_turn,
+                    black_caps, gray_caps, total_time,
+                    black_time, gray_time):
+    """
+    Sauvegarde l'état complet du jeu dans un fichier JSON.
+    Cela inclut l'état des pions, compteurs, statistiques et temps.
+    """
+    data = {
+        "black_pieces": black_pieces,  # Positions et états des pièces noires
+        "gray_pieces": gray_pieces,  # Positions et états des pièces grises
+        "is_black_turn": black_turn,  # Indique le tour des noirs
+        "black_caps": black_caps,  # Captures effectuées par les noirs
+        "gray_caps": gray_caps,  # Captures réalisées par les gris
+        "no_capture_turns": no_capture_turns,  # Compteur de non-captures
+        "positions_history": list(positions_history.items()),  # Historique des positions converti en liste
+        "current_player_color": list(current_player_color),  # Couleur actuelle convertie en liste
+        "game_stats": game_stats,  # Statistiques du jeu
+        "total_time": total_time,  # Temps total écoulé
+        "black_time": black_time,  # Temps passé par les noirs
+        "gray_time": gray_time  # Temps passé par les gris
+    }
+    with open(filename, "w") as f:  # Ouverture du fichier en mode écriture
+        json.dump(data, f, indent=2)  # Sauvegarde en format JSON avec indentations
+
+
+def load_game_state(filename):
+    """
+    Charge l'état du jeu depuis un fichier JSON.
+    Retourne un tuple avec toutes les informations ou None en cas d'erreur.
+    """
+    global no_capture_turns, positions_history, current_player_color, game_stats
+    try:
+        with open(filename, "r") as f:  # Ouverture du fichier en lecture
+            data = json.load(f)  # Chargement des données JSON
+        black_pieces = data["black_pieces"]  # Récupération des pièces noires
+        gray_pieces = data["gray_pieces"]  # Récupération des pièces grises
+        is_black_turn = data["is_black_turn"]  # Tour des noirs ou non
+        black_caps = data["black_caps"]  # Captures pour les noirs
+        gray_caps = data["gray_caps"]  # Captures pour les gris
+        no_capture_turns = data["no_capture_turns"]  # Rétablissement du compteur de non-captures
+        positions_history = dict(data["positions_history"])  # Récupération de l'historique
+        current_player_color = tuple(data["current_player_color"])  # Rétablissement de la couleur du joueur
+        game_stats = data["game_stats"]  # Récupération des statistiques
+        total_time = data["total_time"]  # Temps total
+        black_time = data["black_time"]  # Temps des noirs
+        gray_time = data["gray_time"]  # Temps des gris
+
+        return (black_pieces, gray_pieces, is_black_turn,
+                black_caps, gray_caps,
+                total_time, black_time, gray_time)  # Retourne l'état complet du jeu
+    except Exception as e:
+        print("Erreur chargement :", e)  # Affiche l'erreur en cas de problème
+        return None  # Retourne None si le chargement échoue
