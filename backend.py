@@ -1,9 +1,8 @@
 """
 Nom : Backend.py
-Auteurs : Dylan, Samuel.
+Auteurs : Dylan, Samuel
 Date 11.11.2024
 """
-
 ###############################################################################
 # Logique du jeu de Dames 10x10 (règles suisses).
 #
