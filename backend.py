@@ -117,3 +117,45 @@ def promote_to_queen_if_needed(piece, color):
         piece[2] = True  # Il est promu
     if piece[2]:  # Si la pièce est devenue dame
         no_capture_turns = 0  # On réinitialise le compteur de non-captures
+
+
+def move_piece(piece, dest):
+    """
+    Déplace la pièce à la nouvelle destination.
+    """
+    piece[0], piece[1] = dest[0], dest[1]  # Mise à jour des coordonnées
+
+
+def apply_move(move, black_pieces, gray_pieces, color, black_caps, gray_caps):
+    """
+    Applique un coup (capture ou simple déplacement), met à jour le compteur de non-captures et les statistiques.
+    - move : dictionnaire décrivant le coup
+    - black_caps / gray_caps : captures effectuées par chaque camp.
+    Retourne les compteurs mis à jour.
+    """
+    global no_capture_turns, game_stats
+    piece = move['piece']  # On récupère la pièce à déplacer
+    is_capture = (move.get('type') == 'capture')  # Vérifie si c'est une capture
+    captured_count = 0  # Initialisation du compteur de captures
+
+    game_stats["moves_count"] += 1  # On incrémente le nombre de coups joués
+
+    if is_capture:  # Si c'est une capture
+        enemies = gray_pieces if color == PIECE_BLACK else black_pieces  # Détermine l'adversaire
+        before = len(enemies)  # Nombre d'ennemis avant capture
+        for (rr, cc) in move['path']:  # Pour chaque position de capture
+            enemies[:] = [x for x in enemies if not (x[0] == rr and x[1] == cc)]
+            # On supprime l'ennemi capturé
+        captured_count = before - len(enemies)  # Calcul du nombre de pièces capturées
+        no_capture_turns = 0  # Réinitialisation du compteur pour capture
+        if color == PIECE_BLACK:  # Mise à jour pour les noirs
+            black_caps += captured_count
+        else:  # Sinon pour les gris
+            gray_caps += captured_count
+        game_stats["total_captures"] += captured_count  # Ajoute au total des captures
+    else:
+        no_capture_turns += 1  # Coup simple : incrémente le compteur de non-captures
+
+    move_piece(piece, move['dest'])  # Déplace la pièce
+    promote_to_queen_if_needed(piece, color)  # Teste la promotion
+    return black_caps, gray_caps  # Retourne les compteurs mis à jour
