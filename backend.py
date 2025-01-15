@@ -86,3 +86,34 @@ def is_repeated_position(black_pieces, gray_pieces, is_black_turn):
     """
     key = create_position_key(black_pieces, gray_pieces, is_black_turn)  # Création de la clé
     return positions_history.get(key, 0) >= 3  # Retourne True si comptage >= 3
+
+
+def is_in_bounds(row, col):
+    """
+    Vérifie si la case (row, col) se trouve dans le plateau de 10x10.
+    """
+    return 0 <= row < 10 and 0 <= col < 10  # Test des bornes
+
+
+def is_occupied(row, col, black_pieces, gray_pieces):
+    """
+    Vérifie si une case (row, col) est occupée par un pion (noir ou gris).
+    """
+    for pc in black_pieces + gray_pieces:  # Parcours de toutes les pièces
+        if pc[0] == row and pc[1] == col:  # Si la position correspond
+            return True  # Retourne True (occupée)
+    return False  # Sinon, la case est libre
+
+
+def promote_to_queen_if_needed(piece, color):
+    """
+    Promotion : si un pion atteint la dernière rangée, il devient dame.
+    On réinitialise aussi le compteur de coups sans capture.
+    """
+    global no_capture_turns
+    if color == PIECE_BLACK and piece[0] == 9:  # Si pion noir atteint la dernière ligne
+        piece[2] = True  # Il devient dame
+    if color == PIECE_GRAY and piece[0] == 0:  # Si pion gris atteint la première ligne
+        piece[2] = True  # Il est promu
+    if piece[2]:  # Si la pièce est devenue dame
+        no_capture_turns = 0  # On réinitialise le compteur de non-captures
