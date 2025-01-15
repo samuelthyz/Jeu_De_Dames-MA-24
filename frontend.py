@@ -153,3 +153,117 @@ def animate_move(screen, piece, start_pos, end_pos, steps=10):
 
     # On place définitivement la pièce à sa position finale
     piece[0], piece[1], piece[2] = er, ec, original_state[2]
+
+
+def draw_sidebar(screen, black_name, gray_name,
+                 black_time, gray_time, total_time,
+                 black_pieces, gray_pieces,
+                 black_caps, gray_caps,
+                 draw_proposal):
+    """
+    Barre latérale : affiche infos sur les deux joueurs, stats de partie, proposition de nulle,
+    et le message "Esc pour quitter" en rouge.
+    """
+    side_rect = pygame.Rect(BOARD_PIXEL_SIZE, 0, SIDEBAR_WIDTH, BOARD_PIXEL_SIZE)
+    pygame.draw.rect(screen, PANEL_BG, side_rect)  # Fond de la sidebar
+    pygame.draw.line(screen, PANEL_EDGE,
+                     (BOARD_PIXEL_SIZE, 0),
+                     (BOARD_PIXEL_SIZE, BOARD_PIXEL_SIZE), 3)  # Ligne de séparation
+
+    x_side = BOARD_PIXEL_SIZE + 20  # Position x de départ pour le texte
+    y_side = 20  # Position y de départ pour le texte
+
+    # Affichage du nom et des infos du joueur Noir
+    black_title = font_info.render(black_name, True, backend.PIECE_BLACK)
+    screen.blit(black_title, (x_side, y_side))
+    y_side += 40
+
+    black_time_surf = font_info.render(f"Noir : {format_time(black_time)}", True, (211, 211, 211))
+    screen.blit(black_time_surf, (x_side, y_side))
+    y_side += 40
+
+    black_rem_surf = font_info.render(f"Restants : {len(black_pieces)}", True, backend.PIECE_BLACK)
+    screen.blit(black_rem_surf, (x_side, y_side))
+    y_side += 40
+
+    black_cap_surf = font_info.render(f"Captures : {black_caps}", True, backend.PIECE_BLACK)
+    screen.blit(black_cap_surf, (x_side, y_side))
+    y_side += 60
+
+    # Statistiques globales
+    moves_surf = font_info.render(f"Coups_total : {backend.game_stats['moves_count']}", True, (211, 211, 211))
+    screen.blit(moves_surf, (x_side, y_side))
+    y_side += 40
+
+    totc_surf = font_info.render(f"Capt tot : {backend.game_stats['total_captures']}", True, (211, 211, 211))
+    screen.blit(totc_surf, (x_side, y_side))
+    y_side += 60
+
+    total_surf = font_info.render(f"Durée : {format_time(total_time)}", True, (211, 211, 211))
+    screen.blit(total_surf, (x_side, y_side))
+    y_side += 80
+
+    # Affichage des infos pour le joueur Gris
+    gray_time_surf = font_info.render(f"Gris : {format_time(gray_time)}", True, (211, 211, 211))
+    screen.blit(gray_time_surf, (x_side, y_side))
+    y_side += 40
+
+    gray_rem_surf = font_info.render(f"Restants : {len(gray_pieces)}", True, backend.PIECE_GRAY)
+    screen.blit(gray_rem_surf, (x_side, y_side))
+    y_side += 40
+
+    gray_cap_surf = font_info.render(f"Captures : {gray_caps}", True, backend.PIECE_GRAY)
+    screen.blit(gray_cap_surf, (x_side, y_side))
+    y_side += 40
+
+    gray_title = font_info.render(gray_name, True, backend.PIECE_GRAY)
+    screen.blit(gray_title, (x_side, y_side))
+    y_side += 60
+
+    # Affiche la proposition de nulle, s'il y a lieu
+    if draw_proposal:
+        prop_surf = font_info.render(f"Nulle proposée : {draw_proposal}", True, (255, 0, 0))
+        screen.blit(prop_surf, (x_side, y_side))
+        y_side += 40
+
+    # Message pour quitter le jeu avec la touche Esc en Rouge
+    esc_msg = font_info.render("Esc pour quitter", True, (255, 0, 0))
+    screen.blit(esc_msg, (x_side, y_side))
+
+
+def cell_from_mouse(mx, my):
+    """
+    Convertit un clic (mx, my) en [row, col] sur le plateau.
+    Retourne None si le clic est en dehors du plateau.
+    """
+    rx = mx - BOARD_MARGIN  # Position relative x par rapport au plateau
+    ry = my - BOARD_MARGIN  # Position relative y par rapport au plateau
+    if 0 <= rx < BOARD_SIZE * CELL_SIZE and 0 <= ry < BOARD_SIZE * CELL_SIZE:
+        # Vérifie si le clic est à l'intérieur du damier
+        row = ry // CELL_SIZE  # Calcule la ligne cliquée
+        col = rx // CELL_SIZE  # Calcule la colonne cliquée
+        return [row, col]  # Retourne la cellule en [row, col]
+    return None  # En dehors du plateau, retourne None
+
+
+def find_piece_at(cell, black_pieces, gray_pieces):
+    """
+    Vérifie si la case (row, col) contient un pion, noir ou gris.
+    Retourne (arr, idx) si trouvé, sinon (None, None).
+    """
+    row, col = cell  # Décompose la cellule cliquée
+    for i, p in enumerate(black_pieces):  # Cherche dans la liste des noirs
+        if p[0] == row and p[1] == col:  # Si position correspondante
+            return (black_pieces, i)  # Retourne la liste et l'indice
+    for i, p in enumerate(gray_pieces):  # Cherche dans la liste des gris
+        if p[0] == row and p[1] == col:
+            return (gray_pieces, i)  # Retourne la liste et l'indice
+    return (None, None)  # Pas de pièce trouvée
+
+
+def fill_vertical_background(screen):
+    """
+    Applique le dégradé vertical de fond pour le menu.
+    """
+    fill_vertical_gradient(screen, MENU_COLOR_TOP, MENU_COLOR_BOTTOM)
+    # Utilise la fonction de dégradé pour remplir l'écran
