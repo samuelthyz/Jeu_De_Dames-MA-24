@@ -427,3 +427,349 @@ def show_end_menu(screen,
         for ev in pygame.event.get():
             if ev.type == pygame.QUIT:
                 waiting = False  # Sort de la boucle quand l'utilisateur ferme la fenêtre
+
+
+def run_game():
+    """
+    Boucle principale du jeu.
+    - Récupère la résolution de l'écran pour s'adapter en plein écran.
+    - Initialise dynamiquement les dimensions du plateau et de la sidebar.
+    - Gère le reste du jeu (menus, animations, etc.) et permet de quitter avec Esc.
+    """
+    pygame.init()  # Initialise tous les modules Pygame
+    init_fonts()  # Initialise les polices utilisées dans le jeu
+
+    # Récupération de la résolution de l'écran
+    infoObject = pygame.display.Info()  # Récupère les informations sur l'affichage courant
+    screen_w = infoObject.current_w  # Largeur actuelle de l'écran
+    screen_h = infoObject.current_h  # Hauteur actuelle de l'écran
+
+    # Définition d'un ratio pour le plateau et la sidebar (70% pour le plateau, 30% pour la sidebar)
+    board_width = int(screen_w * 0.7)  # Le plateau occupe 70% de la largeur
+    sidebar_width = screen_w - board_width  # La sidebar occupe le reste
+
+    # Pour avoir un plateau carré, on prend la dimension minimale entre board_width et screen_h
+    board_size_pixels = min(board_width, screen_h)  # Taille maximale du plateau carré
+
+    # Détermination de la taille du plateau, du CELL_SIZE, de la marge, etc.
+    global CELL_SIZE, BOARD_MARGIN, SIDEBAR_WIDTH, BOARD_PIXEL_SIZE
+    BOARD_SIZE = 10  # Le plateau est de 10x10 cases
+    CELL_SIZE = board_size_pixels // BOARD_SIZE  # Taille d'une case
+    BOARD_MARGIN = CELL_SIZE // 8  # Marge autour du plateau (ici 1/8 de CELL_SIZE)
+    BOARD_PIXEL_SIZE = BOARD_SIZE * CELL_SIZE + BOARD_MARGIN * 2  # Taille totale du plateau
+    SIDEBAR_WIDTH = sidebar_width  # Largeur de la sidebar selon la résolution
+
+    # Création de la fenêtre en plein écran
+    screen = pygame.display.set_mode((screen_w, screen_h), pygame.FULLSCREEN)
+    pygame.display.set_caption("Dames 10x10 - Adaptatif")
+
+    if not show_start_menu(screen):  # Affiche le menu de démarrage et quitte si l'utilisateur choisit "Quitter"
+        return
+
+    black_name, gray_name = get_player_names(screen)  # Saisie des noms des joueurs
+    backend.reset_game_state()  # Réinitialise l'état du jeu dans le backend
+
+    # Placement initial des pions sur le plateau.
+    # Les pions noirs sur les 4 premières lignes et gris sur les 4 dernières (cases alternées)
+    black_pieces = [[r, c, False] for r in range(4) for c in range(BOARD_SIZE) if (r + c) % 2 == 0]
+    gray_pieces = [[r, c, False] for r in range(6, 10) for c in range(BOARD_SIZE) if (r + c) % 2 == 0]
+
+    black_turn = True  # Le tour commence avec le joueur Noir
+    black_caps = 0  # Compteur de captures pour Noir initialisé à zéro
+    gray_caps = 0  # Compteur de captures pour Gris initialisé à zéro
+    total_time = 0.0  # Temps total de la partie
+    BLITZ_MODE = True  # Active le mode Blitz
+    BLITZ_TIME_LIMIT = 120  # Limite de temps (en secondes) pour chaque joueur en mode Blitz
+    black_time = BLITZ_TIME_LIMIT if BLITZ_MODE else 0.0  # Temps restant pour Noir
+    gray_time = BLITZ_TIME_LIMIT if BLITZ_MODE else 0.0  # Temps restant pour Gris
+    last_tick = pygame.time.get_ticks()  # Stocke le temps de départ en millisecondes
+
+    backend.update_position_history(black_pieces, gray_pieces, black_turn)  # Met à jour l'historique des positions
+
+    continuingCap = False  # Indique si une capture en chaîne est en cours
+    capturingPiece = None  # La pièce qui effectue une capture en chaîne
+    selectedPawn = None  # La pièce sélectionnée par le joueur
+    possibleMoves = []  # Liste des coups possibles pour la pièce sélectionnée
+    drawProposal = None  # Proposition de nulle si les joueurs s'accordent
+    running = True  # Condition pour maintenir la boucle principale du jeu
+    clock = pygame.time.Clock()  # Horloge pour gérer le taux d'images (FPS)
+
+    while running:  # Boucle principale du jeu
+        clock.tick(60)  # Limite la boucle à 60 FPS
+        now = pygame.time.get_ticks()  # Temps actuel en millisecondes
+        dt = (now - last_tick) / 1000.0  # Temps écoulé depuis la dernière itération (en secondes)
+        total_time += dt  # Incrémente le temps total de jeu
+        # Gestion du mode Blitz (décompte du temps du joueur actif)
+        if BLITZ_MODE:
+            if black_turn:  # Si c'est le tour des noirs
+                black_time -= dt  # Décrémente le temps restant pour noir
+                if black_time <= 0:  # Si le temps est épuisé pour noir
+                    black_time = 0  # On fixe le temps à 0
+                    screen.fill((0, 0, 0))  # Remplit l'écran de noir
+                    msg = font_title.render("Temps épuisé (Noir) -> Gris gagne", True, (255, 0, 0))
+                    screen.blit(msg, (screen_w // 2 - msg.get_width() // 2,
+                                      screen_h // 2 - msg.get_height() // 2))
+                    pygame.display.flip()  # Actualise l'affichage
+                    pygame.time.wait(3000)  # Attend 3 secondes
+                    running = False  # Termine la boucle du jeu
+                    break
+            else:  # Sinon, c'est le tour des gris
+                gray_time -= dt  # Décrémente le temps restant pour gris
+                if gray_time <= 0:  # Si le temps est épuisé pour gris
+                    gray_time = 0  # Fixe le temps à 0
+                    screen.fill((0, 0, 0))  # Remplit l'écran de noir
+                    msg = font_title.render("Temps épuisé (Gris) -> Noir gagne", True, (255, 0, 0))
+                    screen.blit(msg, (screen_w // 2 - msg.get_width() // 2,
+                                      screen_h // 2 - msg.get_height() // 2))
+                    pygame.display.flip()  # Actualise l'affichage
+                    pygame.time.wait(3000)  # Attend 3 secondes
+                    running = False  # Termine la boucle du jeu
+                    break
+        else:
+            # En mode normal, on incrémente le temps du joueur actif (sans décompte)
+            if black_turn:
+                black_time += dt
+            else:
+                gray_time += dt
+
+        last_tick = now  # Met à jour le temps de référence
+
+        # Vérification si un joueur a gagné
+        endVal = backend.check_winner(black_pieces, gray_pieces)
+        if endVal:
+            screen.fill((220, 220, 220))  # Remplit l'écran d'une couleur claire
+            draw_board(screen)  # Redessine le plateau
+            for b_p in black_pieces:  # Redessine les pions noirs
+                draw_pawn(screen, b_p, backend.PIECE_BLACK)
+            for g_p in gray_pieces:  # Redessine les pions gris
+                draw_pawn(screen, g_p, backend.PIECE_GRAY)
+            msg = font_title.render(f"{endVal} a gagné !", True, (255, 0, 0))
+            screen.blit(msg, (screen_w // 2 - msg.get_width() // 2,
+                              screen_h // 2 - msg.get_height() // 2))
+            pygame.display.flip()  # Actualise l'affichage
+            pygame.time.wait(2000)  # Attend 2 secondes
+            running = False  # Termine la boucle du jeu
+            break
+
+        # Vérification de la règle des 50 coups sans capture
+        if backend.no_capture_turns >= 50:
+            screen.fill((220, 220, 220))
+            draw_board(screen)
+            for b_p in black_pieces:
+                draw_pawn(screen, b_p, backend.PIECE_BLACK)
+            for g_p in gray_pieces:
+                draw_pawn(screen, g_p, backend.PIECE_GRAY)
+            msg = font_menu.render("Nul (50 coups)", True, (255, 0, 0))
+            screen.blit(msg, (screen_w // 2 - msg.get_width() // 2,
+                              screen_h // 2 - msg.get_height() // 2))
+            pygame.display.flip()
+            pygame.time.wait(2000)
+            running = False
+            break
+
+        # Vérification de la règle de répétition des positions (nul par répétition)
+        if backend.is_repeated_position(black_pieces, gray_pieces, black_turn):
+            screen.fill((220, 220, 220))
+            draw_board(screen)
+            for b_p in black_pieces:
+                draw_pawn(screen, b_p, backend.PIECE_BLACK)
+            for g_p in gray_pieces:
+                draw_pawn(screen, g_p, backend.PIECE_GRAY)
+            msg = font_menu.render("Nul (répétition)", True, (255, 0, 0))
+            screen.blit(msg, (screen_w // 2 - msg.get_width() // 2,
+                              screen_h // 2 - msg.get_height() // 2))
+            pygame.display.flip()
+            pygame.time.wait(2000)
+            running = False
+            break
+
+        # Détermine la couleur du joueur actif
+        colorNow = backend.PIECE_BLACK if black_turn else backend.PIECE_GRAY
+
+        # Si aucune capture en chaîne n'est en cours, on récupère tous les coups possibles pour le joueur actif
+        if not continuingCap:
+            movesAll = backend.find_all_possible_moves(colorNow, black_pieces, gray_pieces)
+            if not movesAll:
+                screen.fill((220, 220, 220))
+                draw_board(screen)
+                for b_p in black_pieces:
+                    draw_pawn(screen, b_p, backend.PIECE_BLACK)
+                for g_p in gray_pieces:
+                    draw_pawn(screen, g_p, backend.PIECE_GRAY)
+                whoWin = "NOIR" if colorNow == backend.PIECE_GRAY else "GRIS"
+                msg = font_title.render(f"{whoWin} gagne (blocage) !", True, (255, 0, 0))
+                screen.blit(msg, (screen_w // 2 - msg.get_width() // 2,
+                                  screen_h // 2 - msg.get_height() // 2))
+                pygame.display.flip()
+                pygame.time.wait(2000)
+                running = False
+                break
+
+        # Redessine l'écran : fond, plateau et les pions
+        screen.fill((220, 220, 220))
+        draw_board(screen)
+        for bpiece in black_pieces:
+            draw_pawn(screen, bpiece, backend.PIECE_BLACK)
+        for gpiece in gray_pieces:
+            draw_pawn(screen, gpiece, backend.PIECE_GRAY)
+        highlight_pawn(screen, selectedPawn)
+
+        # Affiche la sidebar avec les informations et le message "Esc pour quitter"
+        draw_sidebar(screen, black_name, gray_name,
+                     black_time, gray_time, total_time,
+                     black_pieces, gray_pieces,
+                     black_caps, gray_caps,
+                     drawProposal)
+
+        pygame.display.flip()  # Met à jour l'affichage de la fenêtre
+
+        # Gestion des coups obligatoires
+        if not continuingCap:
+            capturesNow = [m for m in backend.find_all_possible_moves(colorNow, black_pieces, gray_pieces)
+                           if m['type'] == 'capture']
+            mustCapture = bool(capturesNow)
+        else:
+            mustCapture = True
+
+        # Gestion des événements (clavier, souris, etc.)
+        evs = pygame.event.get()
+        for ev in evs:
+            if ev.type == pygame.QUIT:
+                running = False  # Quitte le jeu si la fenêtre est fermée
+                break
+            elif ev.type == pygame.KEYDOWN:
+                if ev.key == pygame.K_ESCAPE:
+                    running = False  # Quitte le jeu si la touche Esc est pressée
+                    break
+                elif ev.key == pygame.K_d:
+                    # Touche 'd' pour proposer une nulle
+                    who = "NOIR" if black_turn else "GRIS"
+                    if drawProposal is None:
+                        drawProposal = who  # Première proposition : enregistre le joueur
+                    else:
+                        if drawProposal != who:
+                            screen.fill((220, 220, 220))
+                            draw_board(screen)
+                            for bpp2 in black_pieces:
+                                draw_pawn(screen, bpp2, backend.PIECE_BLACK)
+                            for gpp2 in gray_pieces:
+                                draw_pawn(screen, gpp2, backend.PIECE_GRAY)
+                            msg = font_menu.render("Nulle (accord mutuel)", True, (255, 0, 0))
+                            screen.blit(msg, (screen_w // 2 - msg.get_width() // 2,
+                                              screen_h // 2 - msg.get_height() // 2))
+                            pygame.display.flip()
+                            pygame.time.wait(2000)
+                            running = False
+                            break
+                elif ev.key == pygame.K_s:
+                    # Sauvegarde de la partie
+                    backend.save_game_state("damestemp.json",
+                                            black_pieces, gray_pieces, black_turn,
+                                            black_caps, gray_caps,
+                                            total_time, black_time, gray_time)
+                    print("Partie sauvegardée dans damestemp.json")
+                elif ev.key == pygame.K_l:
+                    # Chargement d'une partie sauvegardée
+                    loaded = backend.load_game_state("damestemp.json")
+                    if loaded:
+                        (black_pieces, gray_pieces, black_turn,
+                         black_caps, gray_caps,
+                         total_time, black_time, gray_time) = loaded
+                        print("Partie chargée !")
+                    else:
+                        print("Échec du chargement.")
+            elif ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
+                mx, my = ev.pos  # Récupère la position du clic de la souris
+                cell = cell_from_mouse(mx, my)  # Convertit la position du clic en coordonnées de case
+                if cell:
+                    if not selectedPawn:
+                        arr, idx = find_piece_at(cell, black_pieces, gray_pieces)
+                        if arr:
+                            pieceObj = arr[idx]  # Récupère la pièce sur la case cliquée
+                            pieceCol = backend.PIECE_BLACK if arr == black_pieces else backend.PIECE_GRAY
+                            if pieceCol == colorNow:  # Vérifie que la pièce appartient au joueur actif
+                                if continuingCap:
+                                    if pieceObj == capturingPiece:
+                                        selectedPawn = (arr, idx)
+                                else:
+                                    allMov = backend.find_all_possible_moves(colorNow, black_pieces, gray_pieces)
+                                    if mustCapture:
+                                        allMov = [mm for mm in allMov if
+                                                  mm['type'] == 'capture' and mm['piece'] == pieceObj]
+                                    else:
+                                        allMov = [mm for mm in allMov if mm['piece'] == pieceObj]
+                                    if any(mv['type'] == 'capture' for mv in allMov):
+                                        allMov = backend.break_down_captures(allMov, pieceObj)
+                                    if allMov:
+                                        selectedPawn = (arr, idx)
+                                        possibleMoves = allMov
+                    else:
+                        chosenMv = None
+                        # Parcourt les coups possibles pour vérifier si la destination cliquée correspond à un mouvement valide
+                        for mv in possibleMoves:
+                            if mv['dest'] == cell:
+                                chosenMv = mv
+                                break
+                        if chosenMv:
+                            p_ = chosenMv['piece']  # Récupère la pièce concernée par le mouvement
+                            startPos = (p_[0], p_[1])  # Position de départ de la pièce
+                            endPos = (chosenMv['dest'][0], chosenMv['dest'][1])  # Destination
+                            animate_move(screen, p_, startPos, endPos, steps=10)  # Anime le déplacement
+                            c_ = backend.PIECE_BLACK if p_ in black_pieces else backend.PIECE_GRAY
+                            black_caps, gray_caps = backend.apply_move(chosenMv, black_pieces, gray_pieces,
+                                                                       c_, black_caps, gray_caps)
+                            if chosenMv['type'] == 'capture':
+                                seq_ = backend.find_all_possible_moves(c_, black_pieces, gray_pieces)
+                                seq_ = [xx for xx in seq_ if xx['piece'] == p_ and xx['type'] == 'capture']
+                                if seq_:
+                                    seq_ = backend.break_down_captures(seq_, p_)
+                                    continuingCap = True
+                                    capturingPiece = p_
+                                    if capturingPiece in black_pieces:
+                                        selectedPawn = (black_pieces, black_pieces.index(capturingPiece))
+                                    else:
+                                        selectedPawn = (gray_pieces, gray_pieces.index(capturingPiece))
+                                    possibleMoves = seq_
+                                else:
+                                    continuingCap = False
+                                    capturingPiece = None
+                                    black_turn = not black_turn
+                                    backend.update_position_history(black_pieces, gray_pieces, black_turn)
+                                    selectedPawn = None
+                                    possibleMoves = []
+                            else:
+                                continuingCap = False
+                                capturingPiece = None
+                                black_turn = not black_turn
+                                backend.update_position_history(black_pieces, gray_pieces, black_turn)
+                                selectedPawn = None
+                                possibleMoves = []
+                        else:
+                            arr2, idx2 = find_piece_at(cell, black_pieces, gray_pieces)
+                            if arr2:
+                                piece2 = arr2[idx2]
+                                col2 = backend.PIECE_BLACK if arr2 == black_pieces else backend.PIECE_GRAY
+                                if col2 == colorNow:
+                                    if continuingCap and piece2 == capturingPiece:
+                                        selectedPawn = (arr2, idx2)
+                                    else:
+                                        newAll = backend.find_all_possible_moves(colorNow, black_pieces, gray_pieces)
+                                        if mustCapture:
+                                            newAll = [yy for yy in newAll if
+                                                      yy['type'] == 'capture' and yy['piece'] == piece2]
+                                        else:
+                                            newAll = [yy for yy in newAll if yy['piece'] == piece2]
+                                        if any(zz['type'] == 'capture' for zz in newAll):
+                                            newAll = backend.break_down_captures(newAll, piece2)
+                                        if newAll:
+                                            selectedPawn = (arr2, idx2)
+                                            possibleMoves = newAll
+
+    # Fin de la partie : affiche le menu de fin avec le résumé des statistiques
+    show_end_menu(screen,
+                  black_name, gray_name,
+                  black_time, gray_time, total_time,
+                  black_pieces, gray_pieces,
+                  black_caps, gray_caps)
+
+    pygame.quit()  # Ferme Pygame proprement lorsque le jeu est terminé
