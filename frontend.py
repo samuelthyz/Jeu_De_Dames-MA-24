@@ -171,55 +171,79 @@ def draw_sidebar(screen, black_name, gray_name,
                      (BOARD_PIXEL_SIZE, 0),
                      (BOARD_PIXEL_SIZE, BOARD_PIXEL_SIZE), 3)  # Ligne de séparation
 
-    x_side = BOARD_PIXEL_SIZE + 20  # Position x de départ pour le texte
-    y_side = 20  # Position y de départ pour le texte
+    x_side = BOARD_PIXEL_SIZE + 60  # Position x de départ pour le texte
+    y_side = 60  # Position y de départ pour le texte
 
-    # Affichage du nom et des infos du joueur Noir
+    y_black_start = BOARD_PIXEL_SIZE // 7  # Position verticale de départ
+    x_center = BOARD_PIXEL_SIZE + SIDEBAR_WIDTH // 2  # Centre horizontal de la sidebar
+
+    # Nom du joueur Noir
     black_title = font_info.render(black_name, True, backend.PIECE_BLACK)
-    screen.blit(black_title, (x_side, y_side))
-    y_side += 40
+    black_title_width = black_title.get_width()
+    screen.blit(black_title, (x_center - black_title_width // 2, y_black_start))
+    y_black_start += 40
 
-    black_time_surf = font_info.render(f"Noir : {format_time(black_time)}", True, (211, 211, 211))
-    screen.blit(black_time_surf, (x_side, y_side))
-    y_side += 40
+    # Temps restant pour Noir
+    black_time_surf = font_info.render(f"Noir : {format_time(black_time)}", True, (0, 0, 0))
+    black_time_width = black_time_surf.get_width()
+    screen.blit(black_time_surf, (x_center - black_time_width // 2, y_black_start))
+    y_black_start += 40
 
+    # Pions restants pour Noir
     black_rem_surf = font_info.render(f"Restants : {len(black_pieces)}", True, backend.PIECE_BLACK)
-    screen.blit(black_rem_surf, (x_side, y_side))
-    y_side += 40
+    black_rem_width = black_rem_surf.get_width()
+    screen.blit(black_rem_surf, (x_center - black_rem_width // 2, y_black_start))
+    y_black_start += 40
 
+    # Captures réalisées par Noir
     black_cap_surf = font_info.render(f"Captures : {black_caps}", True, backend.PIECE_BLACK)
-    screen.blit(black_cap_surf, (x_side, y_side))
-    y_side += 60
+    black_cap_width = black_cap_surf.get_width()
+    screen.blit(black_cap_surf, (x_center - black_cap_width // 2, y_black_start))
+    y_black_start += 60
 
-    # Statistiques globales
-    moves_surf = font_info.render(f"Coups_total : {backend.game_stats['moves_count']}", True, (211, 211, 211))
-    screen.blit(moves_surf, (x_side, y_side))
-    y_side += 40
+    y_stats_start = BOARD_PIXEL_SIZE // 3  # Position verticale de départ
+    x_center = BOARD_PIXEL_SIZE + SIDEBAR_WIDTH // 2  # Centre horizontal de la sidebar
 
-    totc_surf = font_info.render(f"Capt tot : {backend.game_stats['total_captures']}", True, (211, 211, 211))
-    screen.blit(totc_surf, (x_side, y_side))
-    y_side += 60
+    # Statistique : Coups total
+    moves_surf = font_info.render(f"Coups_total : {backend.game_stats['moves_count']}", True, (10, 50, 180))
+    moves_width = moves_surf.get_width()  # Largeur du texte pour le centrer
+    screen.blit(moves_surf, (x_center - moves_width // 2, y_stats_start))
+    y_stats_start += 40
 
-    total_surf = font_info.render(f"Durée : {format_time(total_time)}", True, (211, 211, 211))
-    screen.blit(total_surf, (x_side, y_side))
-    y_side += 80
+    # Statistique : Captures totales
+    totc_surf = font_info.render(f"Capt tot : {backend.game_stats['total_captures']}", True, (10, 50, 180))
+    totc_width = totc_surf.get_width()
+    screen.blit(totc_surf, (x_center - totc_width // 2, y_stats_start))
+    y_stats_start += 60
 
-    # Affichage des infos pour le joueur Gris
-    gray_time_surf = font_info.render(f"Gris : {format_time(gray_time)}", True, (211, 211, 211))
-    screen.blit(gray_time_surf, (x_side, y_side))
-    y_side += 40
+    # Statistique : Durée
+    total_surf = font_info.render(f"Durée : {format_time(total_time)}", True, (10, 50, 180))
+    total_width = total_surf.get_width()
+    screen.blit(total_surf, (x_center - total_width // 2, y_stats_start))
+    y_stats_start += 80
 
-    gray_rem_surf = font_info.render(f"Restants : {len(gray_pieces)}", True, backend.PIECE_GRAY)
-    screen.blit(gray_rem_surf, (x_side, y_side))
-    y_side += 40
+    y_gray_start = BOARD_PIXEL_SIZE // 2  # Position verticale (au milieu de la sidebar)
+    x_center = BOARD_PIXEL_SIZE + SIDEBAR_WIDTH // 2  # Centre horizontal de la sidebar
 
-    gray_cap_surf = font_info.render(f"Captures : {gray_caps}", True, backend.PIECE_GRAY)
-    screen.blit(gray_cap_surf, (x_side, y_side))
-    y_side += 40
+    gray_time_surf = font_info.render(f"Gris : {format_time(gray_time)}", True, (128, 128, 128))
+    gray_time_width = gray_time_surf.get_width()  # Largeur du texte
+    screen.blit(gray_time_surf, (x_center - gray_time_width // 2, y_gray_start))
+    y_gray_start += 40
 
-    gray_title = font_info.render(gray_name, True, backend.PIECE_GRAY)
-    screen.blit(gray_title, (x_side, y_side))
-    y_side += 60
+    gray_rem_surf = font_info.render(f"Restants : {len(gray_pieces)}", True, (128, 128, 128))
+    gray_rem_width = gray_rem_surf.get_width()
+    screen.blit(gray_rem_surf, (x_center - gray_rem_width // 2, y_gray_start))
+    y_gray_start += 40
+
+    gray_cap_surf = font_info.render(f"Captures : {gray_caps}", True, (128, 128, 128))
+    gray_cap_width = gray_cap_surf.get_width()
+    screen.blit(gray_cap_surf, (x_center - gray_cap_width // 2, y_gray_start))
+    y_gray_start += 40
+
+    gray_title = font_info.render(gray_name, True, (128, 128, 128))
+    gray_title_width = gray_title.get_width()
+    screen.blit(gray_title, (x_center - gray_title_width // 2, y_gray_start))
+    y_gray_start += 60
 
     # Affiche la proposition de nulle, s'il y a lieu
     if draw_proposal:
@@ -227,9 +251,12 @@ def draw_sidebar(screen, black_name, gray_name,
         screen.blit(prop_surf, (x_side, y_side))
         y_side += 40
 
-    # Message pour quitter le jeu avec la touche Esc en Rouge
-    esc_msg = font_info.render("Esc pour quitter", True, (255, 0, 0))
-    screen.blit(esc_msg, (x_side, y_side))
+    # Calcul de la position pour toujours afficher en bas
+    esc_msg = font_info.render("Esc pour quitter la partie", True, (255, 0, 0))  # Message pour quitter la partie
+    esc_msg_width = esc_msg.get_width()
+    x_esc = BOARD_PIXEL_SIZE + (SIDEBAR_WIDTH - esc_msg_width) // 2  # Centrage horizontal
+    y_esc = BOARD_PIXEL_SIZE - 100  # 100 pixels au-dessus du bas de la sidebar
+    screen.blit(esc_msg, (x_esc, y_esc))
 
 
 def cell_from_mouse(mx, my):
