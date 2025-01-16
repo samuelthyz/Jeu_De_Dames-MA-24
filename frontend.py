@@ -46,6 +46,15 @@ font_menu = None  # Police pour les menus
 font_info = None  # Police pour les informations affichées
 
 
+def draw_label(screen, label="Dylan, Samuel"):
+    """
+    Affiche un label discret en bas à gauche de l'écran.
+    """
+    font = pygame.font.SysFont("Arial", 20)  # Police discrète
+    label_surface = font.render(label, True, (128, 128, 128))  # Texte gris discret
+    screen.blit(label_surface, (10, screen.get_height() - 30))  # Bas à gauche avec un petit padding
+
+
 def init_fonts():
     """
     Initialise les polices pour l'affichage.
@@ -84,20 +93,29 @@ def fill_vertical_gradient(surface, top, bottom):
 def draw_board(screen):
     """
     Dessine le damier 10x10 et son cadre.
+    Le damier est centré avec des marges visibles autour.
     """
-    pygame.draw.rect(screen, BOARD_FRAME,
-                     (BOARD_MARGIN - 10, BOARD_MARGIN - 10,
-                      BOARD_SIZE * CELL_SIZE + 20,
-                      BOARD_SIZE * CELL_SIZE + 20))
-    # Dessine le cadre autour du damier
-    for row in range(BOARD_SIZE):  # Parcourt chaque ligne
-        for col in range(BOARD_SIZE):  # Parcourt chaque colonne
-            color = BOARD_BLACK if ((row + col) % 2 == 0) else BOARD_WHITE
+    # Calcul de la position et dimensions du cadre
+    frame_x = BOARD_MARGIN - 10
+    frame_y = BOARD_MARGIN - 10
+    frame_width = BOARD_SIZE * CELL_SIZE + 20
+    frame_height = BOARD_SIZE * CELL_SIZE + 20
+
+    # Dessine le cadre du damier
+    pygame.draw.rect(screen, BOARD_FRAME, (frame_x, frame_y, frame_width, frame_height))
+
+    # Dessine les cases du damier
+    for row in range(BOARD_SIZE):
+        for col in range(BOARD_SIZE):
             # Alterne la couleur de la case en fonction des indices
-            x = col * CELL_SIZE + BOARD_MARGIN  # Calcule la position x sur l'écran
-            y = row * CELL_SIZE + BOARD_MARGIN  # Calcule la position y sur l'écran
-            pygame.draw.rect(screen, color, (x, y, CELL_SIZE, CELL_SIZE))
+            color = BOARD_BLACK if ((row + col) % 2 == 0) else BOARD_WHITE
+
+            # Calcul des coordonnées de la case
+            x = col * CELL_SIZE + BOARD_MARGIN
+            y = row * CELL_SIZE + BOARD_MARGIN
+
             # Dessine la case
+            pygame.draw.rect(screen, color, (x, y, CELL_SIZE, CELL_SIZE))
 
 
 def draw_pawn(screen, piece, color):
@@ -303,7 +321,6 @@ def show_start_menu(screen):
     """
     selected_option = 0  # Option sélectionnée initialement
     item_font = pygame.font.SysFont("Arial", 40, bold=True)
-    # Police pour les options du menu
     options = ["Lancer la partie", "Quitter"]  # Options du menu
     running = True  # Boucle de menu active
 
@@ -314,22 +331,19 @@ def show_start_menu(screen):
         py = (screen.get_height() - panel_h) // 2  # Calcule la position y du panneau
 
         pygame.draw.rect(screen, PANEL_BG, (px, py, panel_w, panel_h), border_radius=20)
-        # Dessine le fond du panneau avec des bords arrondis
         pygame.draw.rect(screen, PANEL_EDGE, (px, py, panel_w, panel_h), width=4, border_radius=20)
-        # Dessine le contour du panneau
 
         title_surf = font_title.render("Menu Principal", True, TEXT_COLOR)
-        # Rendu du titre du menu
         screen.blit(title_surf, (px + (panel_w - title_surf.get_width()) // 2, py + 40))
-        # Centre le titre dans le panneau
 
-        startY = py + 120  # Position de départ pour afficher les options
-        for i, opt in enumerate(options):  # Pour chaque option disponible
+        startY = py + 120  # Position de départ verticale pour les options
+        for i, opt in enumerate(options):
             c = (255, 0, 0) if i == selected_option else TEXT_COLOR
-            # Met en rouge l'option sélectionnée
             surf = item_font.render(opt, True, c)
             screen.blit(surf, (px + (panel_w - surf.get_width()) // 2, startY + i * 60))
-            # Affiche l'option centrée
+
+        # Ajout du label discret en bas à gauche
+        draw_label(screen)
 
         pygame.display.flip()  # Actualise l'affichage
         for ev in pygame.event.get():
@@ -338,10 +352,8 @@ def show_start_menu(screen):
             elif ev.type == pygame.KEYDOWN:
                 if ev.key == pygame.K_UP:
                     selected_option = (selected_option - 1) % len(options)
-                    # Change l'option sélectionnée vers le haut
                 elif ev.key == pygame.K_DOWN:
                     selected_option = (selected_option + 1) % len(options)
-                    # Change l'option sélectionnée vers le bas
                 elif ev.key == pygame.K_RETURN:
                     return (selected_option == 0)  # Retourne True si "Lancer la partie" est choisi
 
@@ -351,51 +363,50 @@ def get_player_names(screen):
     Permet la saisie du nom des joueurs (Noir puis Gris).
     """
     input_font = pygame.font.SysFont("Arial", 40, bold=True)
-    # Police pour la saisie du nom
     black_name = ""
     gray_name = ""
     field = "black"  # Commence par le champ du joueur noir
     running = True
+
     while running:
         screen.fill(PANEL_BG)  # Fond uni pour la saisie
         prompt_txt = "Nom (pions noirs) :" if field == "black" else "Nom (pions gris) :"
-        # Prompt pour savoir quel nom saisir
         prompt_surf = input_font.render(prompt_txt, True, TEXT_COLOR)
         screen.blit(prompt_surf, (screen.get_width() // 2 - prompt_surf.get_width() // 2,
                                   screen.get_height() // 3 - prompt_surf.get_height()))
-        # Affiche le prompt au centre
 
         current_txt = black_name if field == "black" else gray_name
-        # Texte en cours de saisie
         text_surf = input_font.render(current_txt, True, (0, 0, 0))
         screen.blit(text_surf, (screen.get_width() // 2 - text_surf.get_width() // 2,
                                 screen.get_height() // 2))
-        # Affiche le texte saisi
+
+        # Ajout du label discret en bas à gauche
+        draw_label(screen)
+
         pygame.display.flip()  # Actualise l'écran
         for ev in pygame.event.get():
             if ev.type == pygame.QUIT:
-                pygame.quit()  # Ferme Pygame
-                sys.exit()  # Quitte le programme
+                pygame.quit()
+                sys.exit()
             elif ev.type == pygame.KEYDOWN:
                 if ev.key == pygame.K_RETURN:
                     if current_txt.strip():
                         if field == "black":
-                            field = "gray"  # Passe à la saisie du nom des gris
+                            field = "gray"
                         else:
                             return black_name.strip(), gray_name.strip()
-                            # Retourne les noms saisis
                 elif ev.key == pygame.K_BACKSPACE:
                     if field == "black":
-                        black_name = black_name[:-1]  # Supprime le dernier caractère
+                        black_name = black_name[:-1]
                     else:
                         gray_name = gray_name[:-1]
                 else:
-                    ch = ev.unicode  # Récupère le caractère tapé
+                    ch = ev.unicode
                     if ch.isprintable():
                         if field == "black":
-                            black_name += ch  # Ajoute le caractère au nom noir
+                            black_name += ch
                         else:
-                            gray_name += ch  # Ajoute le caractère au nom gris
+                            gray_name += ch
 
 
 def show_end_menu(screen,
@@ -458,6 +469,9 @@ def show_end_menu(screen,
     x_esc = px + (panel_w - esc_msg_width) // 2  # Centre horizontalement
     y_esc = py + panel_h - 60  # Place en bas du panneau récapitulatif
     screen.blit(esc_msg, (x_esc, y_esc))  # Affiche le message
+
+    draw_label(screen)
+    pygame.display.flip()
 
     pygame.display.flip()  # Met à jour l'affichage
     waiting = True
