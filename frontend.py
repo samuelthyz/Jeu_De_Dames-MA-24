@@ -407,53 +407,67 @@ def show_end_menu(screen,
     Affiche le menu de fin avec un résumé de la partie.
     """
     end_font = pygame.font.SysFont("Arial", 50, bold=True)
-    # Police pour le titre de fin
     info_font = pygame.font.SysFont("Arial", 40)
-    # Police pour le reste des informations
     panel_w, panel_h = 1000, 600  # Dimensions du panneau de fin
     px = (screen.get_width() - panel_w) // 2  # Position x pour centrer le panneau
     py = (screen.get_height() - panel_h) // 2  # Position y pour centrer le panneau
+    margin_x = 40  # Marge horizontale pour éviter que les textes soient trop proches des bords
 
-    screen.fill((240, 240, 240))  # Fond clair pour le menu de fin
+    # Dégradé bleu pour le fond
+    MENU_COLOR_TOP = (60, 110, 130)  # Couleur haut du dégradé
+    MENU_COLOR_BOTTOM = (180, 210, 220)  # Couleur bas du dégradé
+    fill_vertical_gradient(screen, MENU_COLOR_TOP, MENU_COLOR_BOTTOM)  # Applique le dégradé
+
+    # Dessine le panneau central
     pygame.draw.rect(screen, (240, 240, 240), (px, py, panel_w, panel_h), border_radius=15)
-    # Dessine le fond du panneau
     pygame.draw.rect(screen, (100, 100, 150), (px, py, panel_w, panel_h), width=4, border_radius=15)
-    # Dessine le contour du panneau
 
+    # Titre du menu
     title_surf = end_font.render("Résumé de la partie", True, (0, 0, 0))
-    # Titre du résumé de la partie
-    screen.blit(title_surf, (px + (panel_w - title_surf.get_width()) // 2, py + 40))
-    # Centre le titre en haut du panneau
+    screen.blit(title_surf, (px + (panel_w - title_surf.get_width()) // 2, py + 30))
 
-    black_rem = len(black_pieces)  # Nombre de pions restants pour les noirs
-    gray_rem = len(gray_pieces)  # Nombre de pions restants pour les gris
+    # Contenu du menu
+    black_rem = len(black_pieces)
+    gray_rem = len(gray_pieces)
 
-    lines = [  # Liste des lignes de résumé
+    lines = [
         f"Temps total : {format_time(total_time)}",
         f"{black_name} - Temps : {format_time(black_time)} | Captures : {black_captures} | Restants : {black_rem}",
         f"{gray_name} - Temps : {format_time(gray_time)} | Captures : {gray_captures} | Restants : {gray_rem}",
         f"Coups joués : {backend.game_stats['moves_count']}",
         f"Captures totales : {backend.game_stats['total_captures']}"
     ]
-    yPos = py + 120  # Position de départ verticale pour les lignes
+
+    # Calculer la hauteur totale occupée par les lignes
+    line_spacing = 50  # Espacement entre chaque ligne
+    total_height = len(lines) * line_spacing  # Hauteur totale de toutes les lignes
+
+    # Calculer le point de départ pour centrer verticalement
+    y_start = py + (panel_h - total_height) // 2
+
+    # Centrage horizontal et affichage des lignes
     for line in lines:
         txt = info_font.render(line, True, (0, 0, 0))
-        # Rendu de chaque ligne d'info
-        screen.blit(txt, (px + (panel_w - txt.get_width()) // 2, yPos))
-        # Centre la ligne dans le panneau
-        yPos += 50  # Décale vers le bas pour la ligne suivante
+        x_centered = px + (panel_w - txt.get_width()) // 2  # Centre horizontalement
+        screen.blit(txt, (x_centered, y_start))
+        y_start += line_spacing
 
-    exit_txt = info_font.render("Fermez la fenêtre pour quitter", True, (50, 50, 50))
-    # Instruction de sortie
-    screen.blit(exit_txt, (px + (panel_w - exit_txt.get_width()) // 2, yPos + 40))
-    # Affiche le message de sortie
+    # Bouton "Esc pour quitter"
+    esc_msg = info_font.render(" Veuillez cliquer Esc pour quitter", True, (255, 0, 0))  # Message en rouge
+    esc_msg_width = esc_msg.get_width()
+    x_esc = px + (panel_w - esc_msg_width) // 2  # Centre horizontalement
+    y_esc = py + panel_h - 60  # Place en bas du panneau récapitulatif
+    screen.blit(esc_msg, (x_esc, y_esc))  # Affiche le message
 
-    pygame.display.flip()  # Actualise l'affichage
+    pygame.display.flip()  # Met à jour l'affichage
     waiting = True
-    while waiting:  # Boucle d'attente pour la fermeture du menu
+    while waiting:  # Boucle d'attente
         for ev in pygame.event.get():
-            if ev.type == pygame.QUIT:
-                waiting = False  # Sort de la boucle quand l'utilisateur ferme la fenêtre
+            if ev.type == pygame.QUIT:  # Si l'utilisateur ferme la fenêtre
+                waiting = False  # Quitte la boucle
+            elif ev.type == pygame.KEYDOWN:  # Si une touche est pressée
+                if ev.key == pygame.K_ESCAPE:  # Vérifie si c'est "Esc"
+                    waiting = False  # Quitte le menu récapitulatif
 
 
 def run_game():
