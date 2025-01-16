@@ -360,49 +360,64 @@ def show_start_menu(screen):
 
 def get_player_names(screen):
     """
-    Permet la saisie du nom des joueurs (Noir puis Gris).
+    Permet la saisie du nom des joueurs (Noir puis Gris) avec un dégradé bleu.
     """
+    # Initialisation de la police pour le texte de saisie
     input_font = pygame.font.SysFont("Arial", 40, bold=True)
-    black_name = ""
-    gray_name = ""
-    field = "black"  # Commence par le champ du joueur noir
-    running = True
+
+    # Variables pour stocker les noms des joueurs
+    black_name = ""  # Nom du joueur Noir
+    gray_name = ""  # Nom du joueur Gris
+    field = "black"  # Champ actuellement actif, commence par les pions noirs
+
+    running = True  # Contrôle de la boucle de saisie
 
     while running:
-        screen.fill(PANEL_BG)  # Fond uni pour la saisie
+        # Dessine un dégradé bleu en arrière-plan
+        fill_vertical_background(screen)
+
+        # Détermine le texte du prompt selon le champ actif (Noir ou Gris)
         prompt_txt = "Nom (pions noirs) :" if field == "black" else "Nom (pions gris) :"
         prompt_surf = input_font.render(prompt_txt, True, TEXT_COLOR)
+
+        # Affiche le texte du prompt au centre horizontalement, à 1/3 de la hauteur
         screen.blit(prompt_surf, (screen.get_width() // 2 - prompt_surf.get_width() // 2,
                                   screen.get_height() // 3 - prompt_surf.get_height()))
 
+        # Texte actuellement saisi (Noir ou Gris)
         current_txt = black_name if field == "black" else gray_name
-        text_surf = input_font.render(current_txt, True, (0, 0, 0))
+        text_surf = input_font.render(current_txt, True, (0, 0, 0))  # Texte en noir
+
+        # Affiche le texte saisi au centre horizontalement, au milieu de l'écran
         screen.blit(text_surf, (screen.get_width() // 2 - text_surf.get_width() // 2,
                                 screen.get_height() // 2))
 
-        # Ajout du label discret en bas à gauche
+        # Ajoute le label "Dylan, Samuel" discrètement en bas à gauche
         draw_label(screen)
 
-        pygame.display.flip()  # Actualise l'écran
+        # Rafraîchit l'affichage
+        pygame.display.flip()
+
+        # Gère les événements clavier et de fenêtre
         for ev in pygame.event.get():
-            if ev.type == pygame.QUIT:
+            if ev.type == pygame.QUIT:  # Si l'utilisateur ferme la fenêtre
                 pygame.quit()
-                sys.exit()
+                sys.exit()  # Quitte le programme
             elif ev.type == pygame.KEYDOWN:
-                if ev.key == pygame.K_RETURN:
-                    if current_txt.strip():
-                        if field == "black":
+                if ev.key == pygame.K_RETURN:  # Si l'utilisateur appuie sur "Entrée"
+                    if current_txt.strip():  # Vérifie que du texte a été saisi
+                        if field == "black":  # Si c'était le champ Noir, passe au champ Gris
                             field = "gray"
-                        else:
+                        else:  # Sinon, les deux noms ont été saisis, retourne les résultats
                             return black_name.strip(), gray_name.strip()
-                elif ev.key == pygame.K_BACKSPACE:
+                elif ev.key == pygame.K_BACKSPACE:  # Supprime le dernier caractère
                     if field == "black":
                         black_name = black_name[:-1]
                     else:
                         gray_name = gray_name[:-1]
-                else:
+                else:  # Ajoute les caractères imprimables au texte en cours
                     ch = ev.unicode
-                    if ch.isprintable():
+                    if ch.isprintable():  # Vérifie que le caractère est imprimable
                         if field == "black":
                             black_name += ch
                         else:
