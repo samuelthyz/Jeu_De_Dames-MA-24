@@ -499,6 +499,58 @@ def show_end_menu(screen,
                     waiting = False  # Quitte le menu récapitulatif
 
 
+def show_popup(screen, message):
+    """
+    Affiche une pop-up au centre de l'écran avec un message en rouge.
+    """
+    # Taille et position de la pop-up
+    popup_width, popup_height = 500, 250
+    popup_x = (screen.get_width() - popup_width) // 2
+    popup_y = (screen.get_height() - popup_height) // 2
+
+    # Couleurs
+    popup_background = (240, 240, 240)  # Fond clair
+    popup_border = (0, 0, 0)  # Bordure noire
+    text_color = (255, 0, 0)  # Texte en rouge
+    button_color = (0, 120, 215)  # Bouton bleu
+    button_text_color = (255, 255, 255)  # Texte du bouton blanc
+
+    # Dessine la pop-up avec une bordure
+    pygame.draw.rect(screen, popup_background, (popup_x, popup_y, popup_width, popup_height), border_radius=10)
+    pygame.draw.rect(screen, popup_border, (popup_x, popup_y, popup_width, popup_height), width=4, border_radius=10)
+
+    # Affiche le message en rouge, centré dans la pop-up
+    font = pygame.font.SysFont("Arial", 40, bold=True)
+    text_surface = font.render(message, True, text_color)
+    text_x = popup_x + (popup_width - text_surface.get_width()) // 2
+    text_y = popup_y + (popup_height - text_surface.get_height()) // 2 - 20  # Ajustement vertical
+    screen.blit(text_surface, (text_x, text_y))
+
+    # Ajoute un bouton "OK" au bas de la pop-up
+    button_font = pygame.font.SysFont("Arial", 30)
+    button_surface = button_font.render("OK", True, button_text_color)
+    button_width, button_height = 120, 50
+    button_x = popup_x + (popup_width - button_width) // 2
+    button_y = popup_y + popup_height - 80
+    pygame.draw.rect(screen, button_color, (button_x, button_y, button_width, button_height), border_radius=8)
+    screen.blit(button_surface, (button_x + (button_width - button_surface.get_width()) // 2,
+                                 button_y + (button_height - button_surface.get_height()) // 2))
+
+    pygame.display.flip()
+
+    # Attend que l'utilisateur clique sur "OK" pour fermer la pop-up
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mx, my = event.pos
+                if button_x <= mx <= button_x + button_width and button_y <= my <= button_y + button_height:
+                    waiting = False  # Ferme la pop-up
+
+
 def run_game():
     """
     Boucle principale du jeu.
@@ -613,13 +665,12 @@ def run_game():
                 draw_pawn(screen, b_p, backend.PIECE_BLACK)
             for g_p in gray_pieces:  # Redessine les pions gris
                 draw_pawn(screen, g_p, backend.PIECE_GRAY)
-            msg = font_title.render(f"{endVal} a gagné !", True, (255, 0, 0))
-            screen.blit(msg, (screen_w // 2 - msg.get_width() // 2,
-                              screen_h // 2 - msg.get_height() // 2))
-            pygame.display.flip()  # Actualise l'affichage
-            pygame.time.wait(2000)  # Attend 2 secondes
-            running = False  # Termine la boucle du jeu
-            break
+            # Vérification si un joueur a gagné
+            endVal = backend.check_winner(black_pieces, gray_pieces)
+            if endVal:
+                show_popup(screen, f"{endVal} a gagné !")
+                running = False
+                break
 
         # Vérification de la règle des 50 coups sans capture
         if backend.no_capture_turns >= 50:
